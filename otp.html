@@ -35,7 +35,7 @@
             <div id="errorMessage" role="alert" style="display:none; color: red; margin-bottom: 15px; font-size: 14px;"></div>
             <form id="otpForm">
                 <div class="form-group">
-                    <input type="text" id="otp_code" name="otp_code" class="form-control" placeholder="------" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 20px;" required autofocus>
+                    <input type="tel" id="otp_code" name="otp_code" class="form-control" placeholder="------" maxlength="6" style="text-align: center; letter-spacing: 5px; font-size: 20px;" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required autofocus>
                 </div>
                 
                 <div style="text-align: right; margin-bottom: 20px;">
