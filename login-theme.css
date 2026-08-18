@@ -34,8 +34,8 @@ body {
     padding: 20px;
 }
 
-.card-logo { margin: 20px 0 30px; text-align: center; }
-.card-logo img { width: 200px; }
+.card-logo { margin: 20px 0 30px; text-align: center; background: transparent; }
+.card-logo img { width: 200px; mix-blend-mode: multiply; }
 
 .user-types {
     display: flex;
